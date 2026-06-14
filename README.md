@@ -23,3 +23,7 @@ GET /api/health
 GET /api/assessment
 
 POST /api/assessment
+
+POST /api/auth/register
+
+POST /api/auth/login
