@@ -1,37 +1,40 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
+import { corsResponse, preflight } from '@/lib/cors';
+
+export const OPTIONS = preflight;
 
 export async function POST(request: NextRequest) {
+  const origin = request.headers.get('origin');
+
   try {
     await connectDB();
 
     const body = await request.json();
-
     const { mobile } = body;
 
-    const sanitizedMobile =
-      mobile?.trim();
+    const sanitizedMobile = mobile?.trim();
 
     if (!sanitizedMobile) {
-      return NextResponse.json(
+      return corsResponse(
         {
           success: false,
-          message:
-            'Mobile number is required',
+          message: 'Mobile number is required',
         },
-        { status: 400 }
+        400,
+        origin
       );
     }
 
     if (!/^\d{10}$/.test(sanitizedMobile)) {
-      return NextResponse.json(
+      return corsResponse(
         {
           success: false,
-          message:
-            'Invalid mobile number',
+          message: 'Invalid mobile number',
         },
-        { status: 400 }
+        400,
+        origin
       );
     }
 
@@ -40,16 +43,17 @@ export async function POST(request: NextRequest) {
     }).lean();
 
     if (!user) {
-      return NextResponse.json(
+      return corsResponse(
         {
           success: false,
           message: 'User not found',
         },
-        { status: 404 }
+        404,
+        origin
       );
     }
 
-    return NextResponse.json(
+    return corsResponse(
       {
         success: true,
         message: 'User found',
@@ -61,20 +65,19 @@ export async function POST(request: NextRequest) {
           isVerified: user.isVerified,
         },
       },
-      { status: 200 }
+      200,
+      origin
     );
   } catch (error) {
-    console.error(
-      'Login API Error:',
-      error
-    );
+    console.error('Login API Error:', error);
 
-    return NextResponse.json(
+    return corsResponse(
       {
         success: false,
         message: 'Internal Server Error',
       },
-      { status: 500 }
+      500,
+      origin
     );
   }
 }

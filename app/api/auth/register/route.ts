@@ -1,96 +1,80 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
+import { corsResponse, preflight } from '@/lib/cors';
+
+export const OPTIONS = preflight;
 
 export async function POST(request: NextRequest) {
+  const origin = request.headers.get('origin');
+
   try {
     await connectDB();
 
     const body = await request.json();
 
-    const {
-      fullName,
-      email,
-      mobile,
-    } = body;
+    const { fullName, email, mobile } = body;
 
-    // Sanitize input
     const sanitizedFullName = fullName?.trim();
     const sanitizedEmail = email?.trim().toLowerCase();
     const sanitizedMobile = mobile?.trim();
 
-    // Required validation
-    if (
-      !sanitizedFullName ||
-      !sanitizedEmail ||
-      !sanitizedMobile
-    ) {
-      return NextResponse.json(
+    if (!sanitizedFullName || !sanitizedEmail || !sanitizedMobile) {
+      return corsResponse(
         {
           success: false,
-          message:
-            'fullName, email and mobile are required',
+          message: 'fullName, email and mobile are required',
         },
-        { status: 400 }
+        400,
+        origin
       );
     }
 
-    // Email validation
-    const emailRegex =
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(sanitizedEmail)) {
-      return NextResponse.json(
+      return corsResponse(
         {
           success: false,
           message: 'Invalid email address',
         },
-        { status: 400 }
+        400,
+        origin
       );
     }
 
-    // Mobile validation
     if (!/^\d{10}$/.test(sanitizedMobile)) {
-      return NextResponse.json(
+      return corsResponse(
         {
           success: false,
           message: 'Invalid mobile number',
         },
-        { status: 400 }
+        400,
+        origin
       );
     }
 
-    // Check email duplicate
-    const existingEmail =
-      await User.findOne({
-        email: sanitizedEmail,
-      });
-
+    const existingEmail = await User.findOne({ email: sanitizedEmail });
     if (existingEmail) {
-      return NextResponse.json(
+      return corsResponse(
         {
           success: false,
-          message:
-            'Email is already registered',
+          message: 'Email is already registered',
         },
-        { status: 409 }
+        409,
+        origin
       );
     }
 
-    // Check mobile duplicate
-    const existingMobile =
-      await User.findOne({
-        mobile: sanitizedMobile,
-      });
-
+    const existingMobile = await User.findOne({ mobile: sanitizedMobile });
     if (existingMobile) {
-      return NextResponse.json(
+      return corsResponse(
         {
           success: false,
-          message:
-            'Mobile number is already registered',
+          message: 'Mobile number is already registered',
         },
-        { status: 409 }
+        409,
+        origin
       );
     }
 
@@ -100,11 +84,10 @@ export async function POST(request: NextRequest) {
       mobile: sanitizedMobile,
     });
 
-    return NextResponse.json(
+    return corsResponse(
       {
         success: true,
-        message:
-          'User registered successfully',
+        message: 'User registered successfully',
         user: {
           id: user._id,
           fullName: user.fullName,
@@ -113,20 +96,19 @@ export async function POST(request: NextRequest) {
           isVerified: user.isVerified,
         },
       },
-      { status: 201 }
+      201,
+      origin
     );
   } catch (error) {
-    console.error(
-      'Register API Error:',
-      error
-    );
+    console.error('Register API Error:', error);
 
-    return NextResponse.json(
+    return corsResponse(
       {
         success: false,
         message: 'Internal Server Error',
       },
-      { status: 500 }
+      500,
+      origin
     );
   }
 }
