@@ -111,6 +111,44 @@ export const swaggerSpec = {
         },
       },
     },
+    '/users': {
+      get: {
+        tags: ['Users'],
+        summary: 'Fetch all registered users',
+        description: 'Returns a list of all registered Arthvruksh users sorted by newest first.',
+        responses: {
+          200: {
+            description: 'List of registered users',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: {
+                      type: 'boolean',
+                      example: true,
+                    },
+                    count: {
+                      type: 'integer',
+                      example: 2,
+                    },
+                    data: {
+                      type: 'array',
+                      items: {
+                        $ref: '#/components/schemas/User'
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          500: {
+            $ref: '#/components/responses/InternalError'
+          }
+        }
+      }
+    },
     '/assessment': {
       post: {
         tags: ['Assessment'],
@@ -183,6 +221,17 @@ export const swaggerSpec = {
           email: { type: 'string', example: 'rahul@example.com' },
           mobile: { type: 'string', example: '9876543210' },
           isVerified: { type: 'boolean', example: false },
+        },
+      },
+      User: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '64a1b2c3d4e5f6a7b8c9d0e1', },
+          fullName: { type: 'string', example: 'Rahul Sharma', },
+          email: { type: 'string', example: 'rahul@example.com', },
+          mobile: { type: 'string', example: '9876543210', },
+          isVerified: { type: 'boolean', example: false, },
+          createdAt: { type: 'string', format: 'date-time', example: '2026-06-13T18:30:25.000Z', },
         },
       },
       AssessmentInput: {

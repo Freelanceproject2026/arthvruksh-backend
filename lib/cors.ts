@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 const ALLOWED_ORIGINS = [
   'http://localhost:3000',
@@ -31,7 +31,7 @@ export function corsResponse(
   });
 }
 
-export function preflight(request: Request) {
+export function preflight(request: NextRequest) {
   const origin = request.headers.get('origin');
 
   return new NextResponse(null, {

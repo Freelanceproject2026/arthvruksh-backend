@@ -3,7 +3,9 @@ import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
 import { corsResponse, preflight } from '@/lib/cors';
 
-export const OPTIONS = preflight;
+export async function OPTIONS(request: NextRequest) {
+  return preflight(request);
+}
 
 export async function POST(request: NextRequest) {
   const origin = request.headers.get('origin');
