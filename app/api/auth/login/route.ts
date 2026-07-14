@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
-import { corsResponse, preflight } from '@/lib/cors';
+import { preflight } from '@/lib/cors';
+import { errorResponse, successResponse } from '@/lib/response/apiResponse';
 
 export async function OPTIONS(request: NextRequest) {
   return preflight(request);
@@ -19,25 +20,11 @@ export async function POST(request: NextRequest) {
     const sanitizedMobile = mobile?.trim();
 
     if (!sanitizedMobile) {
-      return corsResponse(
-        {
-          success: false,
-          message: 'Mobile number is required',
-        },
-        400,
-        origin
-      );
+      return errorResponse(origin, 'Mobile number is required', 400);
     }
 
     if (!/^\d{10}$/.test(sanitizedMobile)) {
-      return corsResponse(
-        {
-          success: false,
-          message: 'Invalid mobile number',
-        },
-        400,
-        origin
-      );
+      return errorResponse(origin, 'Invalid mobile number', 400);
     }
 
     const user = await User.findOne({
@@ -45,41 +32,22 @@ export async function POST(request: NextRequest) {
     }).lean();
 
     if (!user) {
-      return corsResponse(
-        {
-          success: false,
-          message: 'User not found',
-        },
-        404,
-        origin
-      );
+      return errorResponse(origin, 'User not found', 404);
     }
 
-    return corsResponse(
-      {
-        success: true,
-        message: 'User found',
-        user: {
-          id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          mobile: user.mobile,
-          isVerified: user.isVerified,
-        },
+    return successResponse(origin, {
+      message: 'User found',
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        mobile: user.mobile,
+        isVerified: user.isVerified,
       },
-      200,
-      origin
-    );
+    });
   } catch (error) {
     console.error('Login API Error:', error);
 
-    return corsResponse(
-      {
-        success: false,
-        message: 'Internal Server Error',
-      },
-      500,
-      origin
-    );
+    return errorResponse(origin, 'Internal Server Error', 500);
   }
 }

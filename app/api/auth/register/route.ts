@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
-import { corsResponse, preflight } from '@/lib/cors';
+import { preflight } from '@/lib/cors';
+import { errorResponse, successResponse } from '@/lib/response/apiResponse';
 
 export async function OPTIONS(request: NextRequest) {
   return preflight(request);
@@ -22,62 +23,27 @@ export async function POST(request: NextRequest) {
     const sanitizedMobile = mobile?.trim();
 
     if (!sanitizedFullName || !sanitizedEmail || !sanitizedMobile) {
-      return corsResponse(
-        {
-          success: false,
-          message: 'fullName, email and mobile are required',
-        },
-        400,
-        origin
-      );
+      return errorResponse(origin, 'fullName, email and mobile are required', 400);
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(sanitizedEmail)) {
-      return corsResponse(
-        {
-          success: false,
-          message: 'Invalid email address',
-        },
-        400,
-        origin
-      );
+      return errorResponse(origin, 'Invalid email address', 400);
     }
 
     if (!/^\d{10}$/.test(sanitizedMobile)) {
-      return corsResponse(
-        {
-          success: false,
-          message: 'Invalid mobile number',
-        },
-        400,
-        origin
-      );
+      return errorResponse(origin, 'Invalid mobile number', 400);
     }
 
     const existingEmail = await User.findOne({ email: sanitizedEmail });
     if (existingEmail) {
-      return corsResponse(
-        {
-          success: false,
-          message: 'Email is already registered',
-        },
-        409,
-        origin
-      );
+      return errorResponse(origin, 'Email is already registered', 409);
     }
 
     const existingMobile = await User.findOne({ mobile: sanitizedMobile });
     if (existingMobile) {
-      return corsResponse(
-        {
-          success: false,
-          message: 'Mobile number is already registered',
-        },
-        409,
-        origin
-      );
+      return errorResponse(origin, 'Mobile number is already registered', 409);
     }
 
     const user = await User.create({
@@ -86,31 +52,19 @@ export async function POST(request: NextRequest) {
       mobile: sanitizedMobile,
     });
 
-    return corsResponse(
-      {
-        success: true,
-        message: 'User registered successfully',
-        user: {
-          id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          mobile: user.mobile,
-          isVerified: user.isVerified,
-        },
+    return successResponse(origin, {
+      message: 'User registered successfully',
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        mobile: user.mobile,
+        isVerified: user.isVerified,
       },
-      201,
-      origin
-    );
+    }, 201);
   } catch (error) {
     console.error('Register API Error:', error);
 
-    return corsResponse(
-      {
-        success: false,
-        message: 'Internal Server Error',
-      },
-      500,
-      origin
-    );
+    return errorResponse(origin, 'Internal Server Error', 500);
   }
 }

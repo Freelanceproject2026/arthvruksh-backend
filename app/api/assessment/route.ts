@@ -1,11 +1,45 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { corsResponse, preflight } from '@/lib/cors';
+import { NextRequest } from 'next/server';
+import { preflight } from '@/lib/cors';
 import { connectDB } from '@/lib/mongodb';
 import UserAssessment from '@/models/UserAssessment';
+import { requireAdmin } from '@/lib/auth/requireAdmin';
+import User from '@/models/User';
+import { errorResponse, paginatedResponse, successResponse } from '@/lib/response/apiResponse';
 
 export async function OPTIONS(request: NextRequest) {
   return preflight(request);
 }
+
+/* ----------------------------------------
+   Assessment Query Type
+---------------------------------------- */
+
+type AssessmentQuery = {
+  $or?: Array<{
+    fullName?: {
+      $regex: string;
+      $options: string;
+    };
+    email?: {
+      $regex: string;
+      $options: string;
+    };
+    mobile?: {
+      $regex: string;
+      $options: string;
+    };
+    pan?: {
+      $regex: string;
+      $options: string;
+    };
+  }>;
+
+  riskProfile?: string;
+};
+
+/* ----------------------------------------
+   POST Assessment
+---------------------------------------- */
 
 export async function POST(request: NextRequest) {
   const origin = request.headers.get('origin');
@@ -17,94 +51,63 @@ export async function POST(request: NextRequest) {
 
     const { fullName, email, mobile } = body;
 
-    // Remove extra spaces
     const sanitizedEmail = email?.trim().toLowerCase();
     const sanitizedMobile = mobile?.trim();
     const sanitizedFullName = fullName?.trim();
 
-    // Required field validation
     if (!sanitizedFullName || !sanitizedEmail || !sanitizedMobile) {
-      return corsResponse(
-        {
-          success: false,
-          message: 'fullName, email and mobile are required',
-        },
-        400,
-        origin
-      );
+      return errorResponse(origin, 'fullName, email and mobile are required', 400);
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(sanitizedEmail)) {
-      return corsResponse(
-        {
-          success: false,
-          message: 'Invalid email address',
-        },
-        400,
-        origin
-      );
+      return errorResponse(origin, 'Invalid email address', 400);
     }
 
-    // Mobile validation (10 digits)
     if (!/^\d{10}$/.test(sanitizedMobile)) {
-      return corsResponse(
-        {
-          success: false,
-          message: 'Invalid mobile number',
-        },
-        400,
-        origin
-      );
+      return errorResponse(origin, 'Invalid mobile number', 400);
     }
 
-    // Check duplicate email
-    const existingUser = await UserAssessment.findOne({
+    // Find the registered user
+    const user = await User.findOne({
       email: sanitizedEmail,
     });
 
-    if (existingUser) {
-      return corsResponse(
-        {
-          success: false,
-          message: 'Assessment already submitted with this email',
-        },
-        409,
-        origin
-      );
+    if (!user) {
+      return errorResponse(origin, 'User is not registered', 404);
     }
 
-    // Save to MongoDB
+    // Check if assessment already exists
+    const existingAssessment = await UserAssessment.findOne({
+      userId: user._id,
+    });
+
+    if (existingAssessment) {
+      return errorResponse(origin, 'Assessment already submitted', 409);
+    }
+
     await UserAssessment.create({
       ...body,
-      fullName: sanitizedFullName,
-      email: sanitizedEmail,
-      mobile: sanitizedMobile,
+      userId: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      mobile: user.mobile,
     });
 
-    return corsResponse(
-      {
-        success: true,
-        message: 'Assessment saved successfully',
-      },
-      201,
-      origin
-    );
+    return successResponse(origin, {
+      message: 'Assessment saved successfully',
+    }, 201);
   } catch (error) {
     console.error('Assessment Save Error:', error);
 
-    return corsResponse(
-      {
-        success: false,
-        message: 'Internal Server Error',
-      },
-      500,
-      origin
-    );
+    return errorResponse(origin, 'Internal Server Error', 500);
   }
 }
+
+/* ----------------------------------------
+   GET Assessments
+---------------------------------------- */
 
 export async function GET(request: NextRequest) {
   const origin = request.headers.get('origin');
@@ -112,29 +115,121 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
-    const assessments = await UserAssessment.find({})
-      .sort({ createdAt: -1 })
-      .lean();
+    const auth = await requireAdmin(origin);
 
-    return corsResponse(
+    if (!auth.authorized) {
+      return auth.response;
+    }
+
+    const { searchParams } = new URL(request.url);
+
+    // Pagination
+    const page = Math.max(
+      parseInt(searchParams.get('page') || '1', 10),
+      1
+    );
+
+    const limit = Math.min(
+      Math.max(parseInt(searchParams.get('limit') || '20', 10), 1),
+      100
+    );
+
+    const skip = (page - 1) * limit;
+
+    // Filters
+    const search = searchParams.get('search')?.trim() || '';
+    const risk = searchParams.get('risk')?.trim() || '';
+
+    // Sorting
+    const allowedSortFields = [
+      'createdAt',
+      'fullName',
+      'age',
+      'annualIncome',
+      'totalScore',
+      'riskProfile',
+    ];
+
+    const requestedSort = searchParams.get('sortBy') || 'createdAt';
+
+    const sortBy = allowedSortFields.includes(requestedSort)
+      ? requestedSort
+      : 'createdAt';
+
+    const order = searchParams.get('order') === 'asc' ? 1 : -1;
+
+    // Mongo Query
+    const query: AssessmentQuery = {};
+
+    if (search) {
+      query.$or = [
+        {
+          fullName: {
+            $regex: search,
+            $options: 'i',
+          },
+        },
+        {
+          email: {
+            $regex: search,
+            $options: 'i',
+          },
+        },
+        {
+          mobile: {
+            $regex: search,
+            $options: 'i',
+          },
+        },
+        {
+          pan: {
+            $regex: search,
+            $options: 'i',
+          },
+        },
+      ];
+    }
+
+    if (risk) {
+      query.riskProfile = risk;
+    }
+
+    const [assessments, totalRecords] = await Promise.all([
+      UserAssessment.find(query)
+        .select('-__v')
+        .sort({
+          [sortBy]: order,
+        })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      UserAssessment.countDocuments(query),
+    ]);
+
+    return paginatedResponse(
+      origin,
+      assessments,
       {
-        success: true,
+        page,
+        limit,
         count: assessments.length,
-        data: assessments,
+        totalPages: Math.ceil(totalRecords / limit),
+        totalRecords,
       },
-      200,
-      origin
+      {
+        filters: {
+          search,
+          risk,
+        },
+        sorting: {
+          sortBy,
+          order: order === 1 ? 'asc' : 'desc',
+        },
+      }
     );
   } catch (error) {
     console.error('Assessment Fetch Error:', error);
 
-    return corsResponse(
-      {
-        success: false,
-        message: 'Internal Server Error',
-      },
-      500,
-      origin
-    );
+    return errorResponse(origin, 'Internal Server Error', 500);
   }
 }
