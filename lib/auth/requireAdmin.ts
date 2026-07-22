@@ -7,7 +7,7 @@ export async function requireAdmin(origin?: string | null) {
 
   if (!session.isLoggedIn || !session.admin) {
     return {
-      authorized: false,
+      authorized: false as const,
       response: corsResponse(
         {
           success: false,
@@ -19,13 +19,15 @@ export async function requireAdmin(origin?: string | null) {
     };
   }
 
-  const admin = await Admin.findById(session.admin.id);
+  const sessionAdmin = session.admin;
+
+  const admin = await Admin.findById(sessionAdmin.id);
 
   if (!admin || !admin.isActive) {
     await session.destroy();
 
     return {
-      authorized: false,
+      authorized: false as const,
       response: corsResponse(
         {
           success: false,
@@ -38,8 +40,8 @@ export async function requireAdmin(origin?: string | null) {
   }
 
   return {
-    authorized: true,
-    admin: session.admin,
+    authorized: true as const,
+    admin: sessionAdmin,
     session,
   };
 }

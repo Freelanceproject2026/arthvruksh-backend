@@ -6,6 +6,7 @@ import { usersPaths } from './users';
 import { assessmentPaths } from './assessment';
 import { dashboardPaths } from './dashboard';
 import { logsPaths } from './logs';
+import { siteConfigPaths } from './siteConfig';
 
 export const swaggerSpec = {
   openapi: '3.0.0',
@@ -31,6 +32,7 @@ export const swaggerSpec = {
     { name: 'Assessment' },
     { name: 'Dashboard' },
     { name: 'Logs' },
+    { name: 'Site Config' },
   ],
   paths: {
     ...authPaths,
@@ -39,6 +41,7 @@ export const swaggerSpec = {
     ...assessmentPaths,
     ...dashboardPaths,
     ...logsPaths,
+    ...siteConfigPaths,
     '/health': {
       get: {
         tags: ['Authentication'],
