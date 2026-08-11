@@ -14,7 +14,8 @@ export type AdminResource =
   | 'USERS'
   | 'ASSESSMENT'
   | 'DASHBOARD'
-  | 'SITE_CONFIG';
+  | 'SITE_CONFIG'
+  | 'INSTAGRAM_DEAL';
 
 export interface IAdminLog extends Document {
   adminId: mongoose.Types.ObjectId;

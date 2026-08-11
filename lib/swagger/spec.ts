@@ -8,6 +8,7 @@ import { dashboardPaths } from './dashboard';
 import { logsPaths } from './logs';
 import { siteConfigPaths } from './siteConfig';
 import { visitorsPaths } from './visitors';
+import { instagramDealsPaths } from './instagramDeals';
 
 export const swaggerSpec = {
   openapi: '3.0.0',
@@ -35,6 +36,7 @@ export const swaggerSpec = {
     { name: 'Logs' },
     { name: 'Site Config' },
     { name: 'Visitors' },
+    { name: 'Instagram Deals' },
   ],
   paths: {
     ...authPaths,
@@ -45,6 +47,7 @@ export const swaggerSpec = {
     ...logsPaths,
     ...siteConfigPaths,
     ...visitorsPaths,
+    ...instagramDealsPaths,
     '/health': {
       get: {
         tags: ['Authentication'],

@@ -7,6 +7,7 @@ import { errorResponse, successResponse } from '@/lib/response/apiResponse';
 
 import User from '@/models/User';
 import UserAssessment from '@/models/UserAssessment';
+import { getInstagramDealStats } from '@/lib/services/instagramDeals/instagramDealService';
 
 export const OPTIONS = preflight;
 
@@ -47,6 +48,7 @@ export async function GET(request: NextRequest) {
       lowRisk,
       moderateRisk,
       highRisk,
+      instagramDeals,
     ] = await Promise.all([
       User.countDocuments(),
       User.countDocuments({
@@ -90,6 +92,7 @@ export async function GET(request: NextRequest) {
       UserAssessment.countDocuments({
         riskProfile: 'High',
       }),
+      getInstagramDealStats(todayStart, weekStart),
     ]);
 
     return successResponse(origin, {
@@ -112,6 +115,13 @@ export async function GET(request: NextRequest) {
           low: lowRisk,
           moderate: moderateRisk,
           high: highRisk,
+        },
+        instagramDeals: {
+          total: instagramDeals.total,
+          active: instagramDeals.active,
+          inactive: instagramDeals.inactive,
+          addedToday: instagramDeals.addedToday,
+          addedThisWeek: instagramDeals.addedThisWeek,
         },
       },
     });
