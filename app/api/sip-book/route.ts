@@ -23,6 +23,8 @@ export async function GET(request: NextRequest) {
 
     return successResponse(origin, {
       sipBook: config.sipBook,
+      sipBookLabel: config.sipBookLabel,
+      sipBookVisible: config.sipBookVisible,
     });
   } catch (error) {
     console.error('SIP Book Fetch Error:', error);
@@ -47,20 +49,43 @@ export async function PATCH(request: NextRequest) {
 
     const body = await request.json();
 
-    const { sipBook } = body;
+    const { sipBook, sipBookLabel, sipBookVisible } = body;
 
-    if (typeof sipBook !== 'number' || !Number.isFinite(sipBook)) {
-      return errorResponse(origin, 'sipBook must be a number', 400);
+    if (sipBook !== undefined) {
+      if (typeof sipBook !== 'number' || !Number.isFinite(sipBook)) {
+        return errorResponse(origin, 'sipBook must be a number', 400);
+      }
+      if (sipBook < 0) {
+        return errorResponse(origin, 'sipBook must be greater than or equal to 0', 400);
+      }
     }
 
-    if (sipBook < 0) {
-      return errorResponse(origin, 'sipBook must be greater than or equal to 0', 400);
+    if (sipBookLabel !== undefined) {
+      if (typeof sipBookLabel !== 'string' || !sipBookLabel.trim()) {
+        return errorResponse(origin, 'sipBookLabel must be a non-empty string', 400);
+      }
+    }
+
+    if (sipBookVisible !== undefined && typeof sipBookVisible !== 'boolean') {
+      return errorResponse(origin, 'sipBookVisible must be a boolean', 400);
+    }
+
+    if (sipBook === undefined && sipBookLabel === undefined && sipBookVisible === undefined) {
+      return errorResponse(origin, 'Provide at least one of sipBook, sipBookLabel, sipBookVisible', 400);
     }
 
     const current = await getSiteConfig();
-    const oldValue = current.sipBook;
+    const oldValue = {
+      sipBook: current.sipBook,
+      sipBookLabel: current.sipBookLabel,
+      sipBookVisible: current.sipBookVisible,
+    };
 
-    const updated = await updateSipBook(sipBook);
+    const updated = await updateSipBook({
+      sipBook,
+      sipBookLabel: sipBookLabel?.trim(),
+      sipBookVisible,
+    });
 
     await logAdminAction({
       request,
@@ -70,13 +95,19 @@ export async function PATCH(request: NextRequest) {
       details: {
         field: 'sipBook',
         oldValue,
-        newValue: updated.sipBook,
+        newValue: {
+          sipBook: updated.sipBook,
+          sipBookLabel: updated.sipBookLabel,
+          sipBookVisible: updated.sipBookVisible,
+        },
       },
     });
 
     return successResponse(origin, {
       message: 'SIP Book updated successfully',
       sipBook: updated.sipBook,
+      sipBookLabel: updated.sipBookLabel,
+      sipBookVisible: updated.sipBookVisible,
     });
   } catch (error) {
     console.error('SIP Book Update Error:', error);

@@ -23,6 +23,8 @@ export async function GET(request: NextRequest) {
 
     return successResponse(origin, {
       aum: config.aum,
+      aumLabel: config.aumLabel,
+      aumVisible: config.aumVisible,
     });
   } catch (error) {
     console.error('AUM Fetch Error:', error);
@@ -47,20 +49,44 @@ export async function PATCH(request: NextRequest) {
 
     const body = await request.json();
 
-    const { aum } = body;
+    const { aum, aumLabel, aumVisible } = body;
 
-    const isValid =
-      aum === null ||
-      (typeof aum === 'number' && Number.isFinite(aum) && aum >= 0);
+    if (aum !== undefined) {
+      const isValid =
+        aum === null ||
+        (typeof aum === 'number' && Number.isFinite(aum) && aum >= 0);
 
-    if (!isValid) {
-      return errorResponse(origin, 'aum must be null or a number greater than or equal to 0', 400);
+      if (!isValid) {
+        return errorResponse(origin, 'aum must be null or a number greater than or equal to 0', 400);
+      }
+    }
+
+    if (aumLabel !== undefined) {
+      if (typeof aumLabel !== 'string' || !aumLabel.trim()) {
+        return errorResponse(origin, 'aumLabel must be a non-empty string', 400);
+      }
+    }
+
+    if (aumVisible !== undefined && typeof aumVisible !== 'boolean') {
+      return errorResponse(origin, 'aumVisible must be a boolean', 400);
+    }
+
+    if (aum === undefined && aumLabel === undefined && aumVisible === undefined) {
+      return errorResponse(origin, 'Provide at least one of aum, aumLabel, aumVisible', 400);
     }
 
     const current = await getSiteConfig();
-    const oldValue = current.aum;
+    const oldValue = {
+      aum: current.aum,
+      aumLabel: current.aumLabel,
+      aumVisible: current.aumVisible,
+    };
 
-    const updated = await updateAUM(aum);
+    const updated = await updateAUM({
+      aum,
+      aumLabel: aumLabel?.trim(),
+      aumVisible,
+    });
 
     await logAdminAction({
       request,
@@ -70,13 +96,19 @@ export async function PATCH(request: NextRequest) {
       details: {
         field: 'aum',
         oldValue,
-        newValue: updated.aum,
+        newValue: {
+          aum: updated.aum,
+          aumLabel: updated.aumLabel,
+          aumVisible: updated.aumVisible,
+        },
       },
     });
 
     return successResponse(origin, {
       message: 'AUM updated successfully',
       aum: updated.aum,
+      aumLabel: updated.aumLabel,
+      aumVisible: updated.aumVisible,
     });
   } catch (error) {
     console.error('AUM Update Error:', error);

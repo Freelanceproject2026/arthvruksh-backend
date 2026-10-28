@@ -292,6 +292,33 @@ export const schemas = {
       createdAt: { type: 'string', format: 'date-time' },
     },
   },
+  Announcement: {
+    type: 'object',
+    properties: {
+      enabled: { type: 'boolean', example: true },
+      badge: { type: 'string', example: 'MILESTONE UNLOCKED' },
+      highlight: { type: 'string', example: '₹2 Cr+' },
+      message: { type: 'string', example: 'Assets Under Management' },
+      statValue: { type: 'string', example: '125+' },
+      statLabel: { type: 'string', example: 'Active Clients' },
+      ctaLabel: { type: 'string', example: 'Start your SIP' },
+      ctaHref: { type: 'string', example: '#book-call' },
+    },
+  },
+  AnnouncementInput: {
+    type: 'object',
+    description: 'All fields optional; omitted fields are left unchanged.',
+    properties: {
+      enabled: { type: 'boolean', example: true },
+      badge: { type: 'string', example: 'MILESTONE UNLOCKED' },
+      highlight: { type: 'string', example: '₹2 Cr+' },
+      message: { type: 'string', example: 'Assets Under Management' },
+      statValue: { type: 'string', example: '125+' },
+      statLabel: { type: 'string', example: 'Active Clients' },
+      ctaLabel: { type: 'string', example: 'Start your SIP' },
+      ctaHref: { type: 'string', example: '#book-call' },
+    },
+  },
   Pagination: {
     type: 'object',
     properties: {
