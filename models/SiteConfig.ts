@@ -27,11 +27,7 @@ export interface ISiteConfig extends Document {
   updatedAt: Date;
 }
 
-/**
- * Defaults mirror the content that used to be hardcoded in
- * src/config/announcements.ts on the frontend, so the first read after this
- * migration renders pixel-identical to what was there before.
- */
+
 export const DEFAULT_ANNOUNCEMENT: IAnnouncement = {
   enabled: true,
   badge: 'MILESTONE UNLOCKED',
