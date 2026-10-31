@@ -43,6 +43,7 @@ const STRING_FIELDS = [
   'statLabel',
   'ctaLabel',
   'ctaHref',
+  'subText',
 ] as const;
 
 export async function PATCH(request: NextRequest) {

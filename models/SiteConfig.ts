@@ -9,6 +9,7 @@ export interface IAnnouncement {
   statLabel: string;
   ctaLabel: string;
   ctaHref: string;
+  subText: string;
 }
 
 export interface ISiteConfig extends Document {
@@ -37,6 +38,7 @@ export const DEFAULT_ANNOUNCEMENT: IAnnouncement = {
   statLabel: 'Active Clients',
   ctaLabel: 'Start your SIP',
   ctaHref: '#book-call',
+  subText: '',
 };
 
 const AnnouncementSchema = new Schema<IAnnouncement>(
@@ -49,6 +51,7 @@ const AnnouncementSchema = new Schema<IAnnouncement>(
     statLabel: { type: String, default: DEFAULT_ANNOUNCEMENT.statLabel },
     ctaLabel: { type: String, default: DEFAULT_ANNOUNCEMENT.ctaLabel },
     ctaHref: { type: String, default: DEFAULT_ANNOUNCEMENT.ctaHref },
+    subText: { type: String, default: DEFAULT_ANNOUNCEMENT.subText },
   },
   { _id: false }
 );

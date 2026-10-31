@@ -303,6 +303,7 @@ export const schemas = {
       statLabel: { type: 'string', example: 'Active Clients' },
       ctaLabel: { type: 'string', example: 'Start your SIP' },
       ctaHref: { type: 'string', example: '#book-call' },
+      subText: { type: 'string', example: 'SIP registrations open till 31 Dec', description: 'Optional second line shown under the announcement bar; blank hides it.' },
     },
   },
   AnnouncementInput: {
@@ -317,6 +318,7 @@ export const schemas = {
       statLabel: { type: 'string', example: 'Active Clients' },
       ctaLabel: { type: 'string', example: 'Start your SIP' },
       ctaHref: { type: 'string', example: '#book-call' },
+      subText: { type: 'string', example: 'SIP registrations open till 31 Dec', description: 'Optional second line shown under the announcement bar; blank hides it.' },
     },
   },
   Pagination: {
